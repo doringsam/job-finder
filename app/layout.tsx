@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "캠퍼스픽 | 대학생 맞춤 채용공고",
-  description: "전공과 관심 분야에 꼭 맞는 인턴·신입 채용공고를 가볍게 찾아보세요.",
+  title: "캠퍼스픽 | 충남대 생명정보학과 인턴 파인더",
+  description: "재학생이 지원할 수 있는 충청권 바이오·헬스케어 데이터 분석 인턴을 찾아보세요.",
   openGraph: {
     title: "캠퍼스픽 | 대학생 맞춤 채용공고",
-    description: "첫 커리어, 헤매지 않도록. 나에게 맞는 인턴·신입 공고를 찾아보세요.",
+    description: "충남대 생명정보학과 3학년을 위한 충청권 인턴 파인더.",
     images: [{ url: "/og.png", width: 1200, height: 630, alt: "캠퍼스픽 — 첫 커리어, 헤매지 않도록." }],
     locale: "ko_KR",
     type: "website",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "캠퍼스픽 | 대학생 맞춤 채용공고",
-    description: "첫 커리어, 헤매지 않도록. 나에게 맞는 인턴·신입 공고를 찾아보세요.",
+    description: "충남대 생명정보학과 3학년을 위한 충청권 인턴 파인더.",
     images: ["/og.png"],
   },
 };
