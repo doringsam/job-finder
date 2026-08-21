@@ -1,37 +1,59 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import recruitmentJobs from "../jobs.json";
 
 type Region = "충청권 전체" | "대전" | "세종" | "충남" | "충북";
+type JobRegion = Exclude<Region, "충청권 전체"> | "서울" | "";
 type Job = {
   id: number;
   title: string;
   field: string;
   type: "인턴" | "신입";
   location: string;
-  region: Exclude<Region, "충청권 전체"> | "서울";
-  studentEligible: boolean;
+  regions: JobRegion[];
+  studentEligible: boolean | null;
   bioHealthData: boolean;
   note: string;
 };
 
-const jobs: Job[] = [
-  { id: 1, title: "유전체 데이터 분석 인턴", field: "바이오·헬스케어 데이터 분석", type: "인턴", location: "대전 유성구", region: "대전", studentEligible: true, bioHealthData: true, note: "유전체 데이터 정리 및 분석 보조" },
-  { id: 2, title: "임상 데이터 큐레이션 인턴", field: "바이오·헬스케어 데이터 분석", type: "인턴", location: "세종 조치원", region: "세종", studentEligible: true, bioHealthData: true, note: "임상 데이터 검수 및 표준화" },
-  { id: 3, title: "디지털 헬스 데이터 운영 인턴", field: "바이오·헬스케어 데이터 분석", type: "인턴", location: "충남 천안", region: "충남", studentEligible: true, bioHealthData: true, note: "헬스케어 데이터 품질 확인" },
-  { id: 4, title: "바이오마커 데이터 리서치 인턴", field: "바이오·헬스케어 데이터 분석", type: "인턴", location: "충북 청주", region: "충북", studentEligible: true, bioHealthData: true, note: "바이오마커 자료 조사 및 데이터 정리" },
-  { id: 5, title: "의생명 연구 데이터 보조 인턴", field: "의생명 연구지원", type: "인턴", location: "대전 중구", region: "대전", studentEligible: true, bioHealthData: false, note: "연구 데이터 입력 및 결과 정리" },
-  { id: 6, title: "단백질 연구 운영 인턴", field: "생명과학 연구지원", type: "인턴", location: "세종 집현동", region: "세종", studentEligible: true, bioHealthData: false, note: "연구 기록 및 시료 정보 관리" },
-  { id: 7, title: "바이오인포매틱스 분석가", field: "바이오·헬스케어 데이터 분석", type: "신입", location: "대전 유성구", region: "대전", studentEligible: true, bioHealthData: true, note: "바이오 데이터 분석 및 보고서 작성" },
-  { id: 8, title: "헬스케어 데이터 인턴", field: "바이오·헬스케어 데이터 분석", type: "인턴", location: "서울 강남구", region: "서울", studentEligible: true, bioHealthData: true, note: "건강 데이터 분석 보조" },
-  { id: 9, title: "유전체 분석 장기 인턴", field: "바이오·헬스케어 데이터 분석", type: "인턴", location: "대전 유성구", region: "대전", studentEligible: false, bioHealthData: true, note: "졸업예정자만 지원 가능" },
-];
+type RecruitmentJob = {
+  recrutPblntSn: number;
+  recrutPbancTtl?: string | null;
+  ncsCdNmLst?: string | null;
+  hireTypeNmLst?: string | null;
+  workRgnNmLst?: string | null;
+  recrutSeNm?: string | null;
+  instNm?: string | null;
+};
 
 const regionOptions: Region[] = ["충청권 전체", "대전", "세종", "충남", "충북"];
 
+const jobs: Job[] = (recruitmentJobs as RecruitmentJob[]).map((rawJob) => {
+  const title = rawJob.recrutPbancTtl ?? "";
+  const field = rawJob.ncsCdNmLst ?? "";
+  const note = rawJob.instNm ?? "";
+  const location = rawJob.workRgnNmLst ?? "";
+  const searchableText = `${title} ${field} ${note}`;
+  const hasBioHealthTerms = /바이오|생명|유전체|의료|헬스|보건|임상|의약|제약/.test(searchableText);
+  const hasDataTerms = /데이터|분석|정보|전산|통계|AI|인공지능/.test(searchableText);
+
+  return {
+    id: rawJob.recrutPblntSn,
+    title,
+    field,
+    type: rawJob.hireTypeNmLst?.includes("인턴") ? "인턴" : "신입",
+    location,
+    regions: (["대전", "세종", "충남", "충북", "서울"] as const).filter((item) => location.includes(item)),
+    studentEligible: null,
+    bioHealthData: hasBioHealthTerms && hasDataTerms,
+    note,
+  };
+});
+
 function JobCard({ job, onSimilar }:{ job:Job; onSimilar:(type:Job["type"])=>void }) {
   return <article className="job-card">
-    <div className="eligibility-badge"><span>✓</span> 재학생 지원 가능</div>
+    <div className="eligibility-badge">{job.studentEligible === true && <><span>✓</span> 재학생 지원 가능</>}</div>
     <div className="job-index">공고 {String(job.id).padStart(2,"0")}</div>
     <h3>{job.title}</h3>
     <p className="job-field">{job.field}</p>
@@ -47,16 +69,16 @@ function JobCard({ job, onSimilar }:{ job:Job; onSimilar:(type:Job["type"])=>voi
 export default function Home() {
   const [bioOnly,setBioOnly]=useState(false);
   const [region,setRegion]=useState<Region>("충청권 전체");
-  const [studentOnly,setStudentOnly]=useState(true);
+  const [studentOnly,setStudentOnly]=useState(false);
   const [jobType,setJobType]=useState<Job["type"]>("인턴");
   const [conditionOpen,setConditionOpen]=useState(false);
   const [similarType,setSimilarType]=useState<Job["type"]|null>(null);
   const [notice,setNotice]=useState("");
 
   const recommendedJobs=useMemo(()=>jobs
-    .filter(job=>!studentOnly||job.studentEligible)
+    .filter(job=>!studentOnly||job.studentEligible===true)
     .filter(job=>job.type===jobType)
-    .filter(job=>region==="충청권 전체"?["대전","세종","충남","충북"].includes(job.region):job.region===region)
+    .filter(job=>region==="충청권 전체"?job.regions.some(item=>["대전","세종","충남","충북"].includes(item)):job.regions.includes(region))
     .filter(job=>!bioOnly||job.bioHealthData)
     .filter(job=>!similarType||job.type===similarType)
     .sort((a,b)=>Number(b.bioHealthData)-Number(a.bioHealthData)),[bioOnly,region,studentOnly,jobType,similarType]);
@@ -98,16 +120,16 @@ export default function Home() {
       </div>
 
       <div className="result-summary">
-        <p><strong>{region}</strong> · {jobType} · 재학생 지원 가능</p>
+        <p><strong>{region}</strong> · {jobType}{studentOnly?" · 재학생 지원 가능":""}</p>
         {bioOnly&&<button onClick={()=>setBioOnly(false)}>바이오 분야 필터 해제 ×</button>}
         {similarType&&<button onClick={()=>setSimilarType(null)}>비슷한 공고 보기 종료 ×</button>}
       </div>
 
       {recommendedJobs.length?<div className="job-grid">{recommendedJobs.map(job=><JobCard key={job.id} job={job} onSimilar={showSimilar}/>)}</div>:<div className="empty-state"><span>0</span><h3>선택한 조건에 맞는 공고가 없어요.</h3><button onClick={()=>setConditionOpen(true)}>조건 다시 선택</button></div>}
-      <p className="sample-note">현재 화면의 공고는 기능 확인을 위한 샘플 데이터입니다.</p>
+      <p className="sample-note">공공데이터포털의 진행 중인 채용 공고를 표시합니다.</p>
     </section>
 
-    <footer><a className="brand" href="#top"><span>campus</span>pick<i>●</i></a><p>충남대 생명정보학과 3학년을 위한 공고 파인더</p><small>API 연결 없이 샘플 공고로 동작합니다.</small></footer>
+    <footer><a className="brand" href="#top"><span>campus</span>pick<i>●</i></a><p>충남대 생명정보학과 3학년을 위한 공고 파인더</p><small>공공데이터포털 채용 공고를 기준으로 동작합니다.</small></footer>
 
     {conditionOpen&&<div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setConditionOpen(false)}}>
       <section className="condition-panel" role="dialog" aria-modal="true" aria-labelledby="condition-title">
@@ -115,7 +137,7 @@ export default function Home() {
         <p className="panel-intro">지역·채용 형태·지원 자격을 다시 선택할 수 있어요.</p>
         <label>근무 지역</label><div className="region-options">{regionOptions.map(item=><button key={item} className={region===item?"selected":""} onClick={()=>setRegion(item)}>{item}</button>)}</div>
         <label htmlFor="job-type">채용 형태</label><select id="job-type" value={jobType} onChange={e=>setJobType(e.target.value as Job["type"])}><option value="인턴">인턴</option></select><p className="field-help">이번 추천에서는 인턴 공고만 다룹니다.</p>
-        <label htmlFor="eligibility">지원 자격</label><select id="eligibility" value={studentOnly?"eligible":""} onChange={()=>setStudentOnly(true)}><option value="eligible">재학생 지원 가능</option></select>
+        <label htmlFor="eligibility">지원 자격</label><select id="eligibility" value={studentOnly?"eligible":""} onChange={e=>setStudentOnly(e.target.value==="eligible")}><option value="">전체</option><option value="eligible">재학생 지원 가능</option></select>
         <button className="apply-button" onClick={applyConditions}>이 조건으로 공고 보기 <span>→</span></button>
       </section>
     </div>}
